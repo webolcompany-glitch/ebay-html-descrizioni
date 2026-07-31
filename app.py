@@ -9,32 +9,33 @@ st.set_page_config(
 )
 
 
-
-# -----------------------------
-# FUNZIONI
-# -----------------------------
+# =============================
+# FUNZIONI GENERAZIONE
+# =============================
 
 
 def crea_lista(testo):
 
-    if pd.isna(testo):
+    if pd.isna(testo) or testo == "":
         return ""
 
     elementi = str(testo).split(";")
 
-    risultato = ""
+    html = ""
 
-    for e in elementi:
-        risultato += f"<li>{e.strip()}</li>\n"
+    for elemento in elementi:
+        elemento = elemento.strip()
 
-    return risultato
+        if elemento:
+            html += f"<li>{elemento}</li>\n"
 
+    return html
 
 
 
 def crea_tabella(testo):
 
-    if pd.isna(testo):
+    if pd.isna(testo) or testo == "":
         return ""
 
     righe = str(testo).split(";")
@@ -45,7 +46,7 @@ def crea_tabella(testo):
 
         if ":" in riga:
 
-            campo,valore = riga.split(":",1)
+            campo, valore = riga.split(":", 1)
 
             html += f"""
 <tr>
@@ -58,110 +59,132 @@ def crea_tabella(testo):
 
 
 
+def crea_descrizione(testo):
 
+    if pd.isna(testo) or testo == "":
+        return ""
 
-def crea_galleria(row):
+    paragrafi = str(testo).split("\n")
 
-    html=""
+    html = ""
 
-    for i in range(2,7):
+    for p in paragrafi:
 
-        foto=row.get(f"FOTO{i}")
-
-        if pd.notna(foto):
+        if p.strip():
 
             html += f"""
-<img src="{foto}" alt="Immagine prodotto">
+<p>
+{p.strip()}
+</p>
 """
 
     return html
 
 
 
+def crea_galleria(row):
+
+    html = ""
+
+    # FOTO4 - FOTO9
+
+    for i in range(4, 10):
+
+        colonna = f"FOTO{i}"
+
+        if colonna in row:
+
+            foto = row[colonna]
+
+            if pd.notna(foto) and str(foto).strip() != "":
+
+                html += f"""
+<img src="{foto}" alt="Immagine prodotto">
+"""
 
 
-def genera_html(row,template):
-
-
-    html=template
-
-
-
-    sostituzioni={
-
-
-    "{{TITOLO}}":
-    row["TITOLO"],
-
-
-    "{{SOTTOTITOLO}}":
-    row["SOTTOTITOLO"],
-
-
-    "{{DESCRIZIONE}}":
-    row["DESCRIZIONE"],
-
-
-    "{{CARATTERISTICHE}}":
-    crea_lista(row["CARATTERISTICHE"]),
-
-
-    "{{DATI_TECNICI}}":
-    crea_tabella(row["DATI_TECNICI"]),
-
-
-    "{{CONTENUTO}}":
-    crea_lista(row["CONTENUTO"]),
-
-
-    "{{NOTA}}":
-    row["NOTA"],
+    return html
 
 
 
-    "{{FOTO1}}":
-    row["FOTO1"],
+def genera_html(row, template):
+
+
+    html = template
 
 
 
-    "{{FOTO2}}":
-    row["FOTO2"],
+    sostituzioni = {
+
+
+        "{{TITOLO}}":
+        row.get("TITOLO",""),
+
+
+        "{{SOTTOTITOLO}}":
+        row.get("SOTTOTITOLO",""),
+
+
+        "{{DESCRIZIONE}}":
+        crea_descrizione(
+            row.get("DESCRIZIONE","")
+        ),
+
+
+        "{{CARATTERISTICHE}}":
+        crea_lista(
+            row.get("CARATTERISTICHE","")
+        ),
+
+
+        "{{DATI_TECNICI}}":
+        crea_tabella(
+            row.get("DATI_TECNICI","")
+        ),
+
+
+        "{{CONTENUTO}}":
+        crea_lista(
+            row.get("CONTENUTO","")
+        ),
+
+
+        "{{NOTA}}":
+        row.get("NOTA",""),
 
 
 
-    "{{FOTO3}}":
-    row["FOTO3"],
+        "{{FOTO1}}":
+        row.get("FOTO1",""),
+
+
+        "{{FOTO2}}":
+        row.get("FOTO2",""),
+
+
+        "{{FOTO3}}":
+        row.get("FOTO3",""),
 
 
 
-    "{{FOTO4}}":
-    row["FOTO4"],
-
-
-
-    "{{FOTO5}}":
-    row["FOTO5"],
-
-
-
-    "{{FOTO6}}":
-    row["FOTO6"],
-
-
-
-    "{{GALLERIA}}":
-    crea_galleria(row)
+        "{{GALLERIA}}":
+        crea_galleria(row)
 
     }
 
 
 
-    for chiave,valore in sostituzioni.items():
+    # sostituzione variabili
+
+    for chiave, valore in sostituzioni.items():
+
 
         if pd.isna(valore):
-            valore=""
 
-        html=html.replace(
+            valore = ""
+
+
+        html = html.replace(
             chiave,
             str(valore)
         )
@@ -172,48 +195,50 @@ def genera_html(row,template):
 
 
 
-# -----------------------------
-# INTERFACCIA
-# -----------------------------
+
+# =============================
+# INTERFACCIA STREAMLIT
+# =============================
 
 
 st.title("🟧 eBay HTML Generator")
 
 st.write(
-"Genera automaticamente descrizioni HTML eBay dentro Excel"
+    "Generatore automatico descrizioni HTML eBay da Excel"
 )
 
 
 
-file_excel = st.file_uploader(
+excel_file = st.file_uploader(
     "Carica file Excel prodotti",
     type=["xlsx"]
 )
 
 
 
-file_template = st.file_uploader(
+template_file = st.file_uploader(
     "Carica template HTML",
     type=["html"]
 )
 
 
 
-if file_excel and file_template:
+
+if excel_file and template_file:
 
 
-    df=pd.read_excel(file_excel)
+    df = pd.read_excel(
+        excel_file
+    )
 
 
-
-    template=file_template.read().decode(
+    template = template_file.read().decode(
         "utf-8"
     )
 
 
-
     st.subheader(
-        "Anteprima prodotti"
+        "Anteprima dati caricati"
     )
 
 
@@ -224,30 +249,48 @@ if file_excel and file_template:
 
 
     if st.button(
-        "🚀 GENERA EXCEL HTML"
+        "🚀 GENERA EXCEL CON HTML"
     ):
 
 
-        lista_html=[]
+
+        html_finali = []
 
 
-        for _,row in df.iterrows():
+
+        barra = st.progress(0)
 
 
-            lista_html.append(
-                genera_html(
-                    row,
-                    template
-                )
+
+        totale = len(df)
+
+
+
+        for indice, (_, row) in enumerate(df.iterrows()):
+
+
+            html = genera_html(
+                row,
+                template
+            )
+
+
+            html_finali.append(
+                html
+            )
+
+
+            barra.progress(
+                (indice + 1) / totale
             )
 
 
 
-        df["HTML_COMPLETO"]=lista_html
+        df["HTML_COMPLETO"] = html_finali
 
 
 
-        output=BytesIO()
+        output = BytesIO()
 
 
 
@@ -264,18 +307,18 @@ if file_excel and file_template:
 
 
         st.success(
-            "File creato correttamente!"
+            "File Excel generato correttamente!"
         )
 
 
 
         st.download_button(
 
-            label="⬇ Scarica Excel con HTML",
+            label="⬇ SCARICA EXCEL EBAY",
 
             data=output,
 
-            file_name="prodotti_html_ebay.xlsx",
+            file_name="inserzioni_ebay_html.xlsx",
 
             mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
 
