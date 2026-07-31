@@ -8,7 +8,32 @@ st.set_page_config(
     page_title="eBay HTML Generator",
     layout="wide"
 )
+# DOWNLOAD FILE ESEMPIO
 
+try:
+
+    with open(
+        "esempio_input.xlsx",
+        "rb"
+    ) as file:
+
+        st.download_button(
+
+            label="📥 Scarica Excel esempio",
+
+            data=file,
+
+            file_name="esempio_input.xlsx",
+
+            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+
+        )
+
+except FileNotFoundError:
+
+    st.warning(
+        "File esempio_input.xlsx non trovato"
+    )
 
 # ==================================
 # CARICAMENTO TEMPLATE FISSO
