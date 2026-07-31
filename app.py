@@ -13,7 +13,7 @@ st.set_page_config(
 try:
 
     with open(
-        "ebay_html_generato.xlsx",
+        "esempio_file_input.xlsx",
         "rb"
     ) as file:
 
@@ -23,7 +23,7 @@ try:
 
             data=file,
 
-            file_name="ebay_html_generato.xlsx",
+            file_name="esempio_file_input.xlsx",
 
             mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
 
@@ -32,7 +32,7 @@ try:
 except FileNotFoundError:
 
     st.warning(
-        "ebay_html_generato.xlsx non trovato"
+        "esempio_file_input.xlsx non trovato"
     )
 
 # ==================================
