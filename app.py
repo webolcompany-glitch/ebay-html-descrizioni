@@ -1,6 +1,7 @@
 import streamlit as st
 import pandas as pd
 from io import BytesIO
+import re
 
 
 st.set_page_config(
@@ -9,50 +10,55 @@ st.set_page_config(
 )
 
 
-# =============================
-# FUNZIONI GENERAZIONE
-# =============================
+# ==================================
+# CARICAMENTO TEMPLATE FISSO
+# ==================================
+
+with open(
+    "template.html",
+    "r",
+    encoding="utf-8"
+) as file:
+
+    template = file.read()
+
+
+
+# ==================================
+# FUNZIONI
+# ==================================
+
+
+def valore_cella(row, campo):
+
+    if campo in row:
+
+        valore = row[campo]
+
+        if pd.notna(valore):
+            return str(valore)
+
+    return ""
+
 
 
 def crea_lista(testo):
 
-    if pd.isna(testo) or testo == "":
+    if not testo:
         return ""
+
+    html = ""
 
     elementi = str(testo).split(";")
 
-    html = ""
-
     for elemento in elementi:
+
         elemento = elemento.strip()
 
         if elemento:
-            html += f"<li>{elemento}</li>\n"
-
-    return html
-
-
-
-def crea_tabella(testo):
-
-    if pd.isna(testo) or testo == "":
-        return ""
-
-    righe = str(testo).split(";")
-
-    html = ""
-
-    for riga in righe:
-
-        if ":" in riga:
-
-            campo, valore = riga.split(":", 1)
 
             html += f"""
-<tr>
-<td>{campo.strip()}</td>
-<td>{valore.strip()}</td>
-</tr>
+<li>{elemento}</li>
 """
 
     return html
@@ -61,12 +67,13 @@ def crea_tabella(testo):
 
 def crea_descrizione(testo):
 
-    if pd.isna(testo) or testo == "":
+    if not testo:
         return ""
+
+    html = ""
 
     paragrafi = str(testo).split("\n")
 
-    html = ""
 
     for p in paragrafi:
 
@@ -78,6 +85,38 @@ def crea_descrizione(testo):
 </p>
 """
 
+
+    return html
+
+
+
+def crea_tabella(testo):
+
+    if not testo:
+        return ""
+
+    html = ""
+
+    righe = str(testo).split(";")
+
+    for riga in righe:
+
+
+        if ":" in riga:
+
+            campo, valore = riga.split(":",1)
+
+
+            html += f"""
+
+<tr>
+<td>{campo.strip()}</td>
+<td>{valore.strip()}</td>
+</tr>
+
+"""
+
+
     return html
 
 
@@ -86,28 +125,78 @@ def crea_galleria(row):
 
     html = ""
 
-    # FOTO4 - FOTO9
 
-    for i in range(4, 10):
+    # cerca automaticamente tutte le colonne FOTO
 
-        colonna = f"FOTO{i}"
+    colonne_foto = []
 
-        if colonna in row:
 
-            foto = row[colonna]
+    for colonna in row.index:
 
-            if pd.notna(foto) and str(foto).strip() != "":
 
-                html += f"""
+        if re.match(
+            r"FOTO\d+",
+            str(colonna)
+        ):
+
+            numero = int(
+                re.findall(
+                    r"\d+",
+                    colonna
+                )[0]
+            )
+
+
+            # dalla FOTO4 in poi
+
+            if numero >= 4:
+
+                colonne_foto.append(
+                    colonna
+                )
+
+
+
+    # ordina FOTO4 FOTO5 FOTO6...
+
+    colonne_foto.sort(
+        key=lambda x:int(
+            re.findall(
+                r"\d+",
+                x
+            )[0]
+        )
+    )
+
+
+
+    for foto_colonna in colonne_foto:
+
+
+        foto = valore_cella(
+            row,
+            foto_colonna
+        )
+
+
+        if foto:
+
+
+            html += f"""
+
 <img src="{foto}" alt="Immagine prodotto">
+
 """
+
 
 
     return html
 
 
 
-def genera_html(row, template):
+
+
+def genera_html(row):
 
 
     html = template
@@ -118,52 +207,83 @@ def genera_html(row, template):
 
 
         "{{TITOLO}}":
-        row.get("TITOLO",""),
+        valore_cella(row,"TITOLO"),
 
 
         "{{SOTTOTITOLO}}":
-        row.get("SOTTOTITOLO",""),
+        valore_cella(row,"SOTTOTITOLO"),
+
 
 
         "{{DESCRIZIONE}}":
         crea_descrizione(
-            row.get("DESCRIZIONE","")
+            valore_cella(
+                row,
+                "DESCRIZIONE"
+            )
         ),
+
 
 
         "{{CARATTERISTICHE}}":
         crea_lista(
-            row.get("CARATTERISTICHE","")
+            valore_cella(
+                row,
+                "CARATTERISTICHE"
+            )
         ),
+
 
 
         "{{DATI_TECNICI}}":
         crea_tabella(
-            row.get("DATI_TECNICI","")
+            valore_cella(
+                row,
+                "DATI_TECNICI"
+            )
         ),
+
 
 
         "{{CONTENUTO}}":
         crea_lista(
-            row.get("CONTENUTO","")
+            valore_cella(
+                row,
+                "CONTENUTO"
+            )
         ),
 
 
+
         "{{NOTA}}":
-        row.get("NOTA",""),
+        valore_cella(
+            row,
+            "NOTA"
+        ),
 
 
 
         "{{FOTO1}}":
-        row.get("FOTO1",""),
+        valore_cella(
+            row,
+            "FOTO1"
+        ),
+
 
 
         "{{FOTO2}}":
-        row.get("FOTO2",""),
+        valore_cella(
+            row,
+            "FOTO2"
+        ),
+
 
 
         "{{FOTO3}}":
-        row.get("FOTO3",""),
+        valore_cella(
+            row,
+            "FOTO3"
+        ),
 
 
 
@@ -174,19 +294,12 @@ def genera_html(row, template):
 
 
 
-    # sostituzione variabili
-
-    for chiave, valore in sostituzioni.items():
-
-
-        if pd.isna(valore):
-
-            valore = ""
+    for chiave,valore in sostituzioni.items():
 
 
         html = html.replace(
             chiave,
-            str(valore)
+            valore
         )
 
 
@@ -196,49 +309,34 @@ def genera_html(row, template):
 
 
 
-# =============================
-# INTERFACCIA STREAMLIT
-# =============================
+# ==================================
+# INTERFACCIA
+# ==================================
 
 
-st.title("🟧 eBay HTML Generator")
-
-st.write(
-    "Generatore automatico descrizioni HTML eBay da Excel"
+st.title(
+    "🟧 Generatore HTML eBay"
 )
 
 
 
-excel_file = st.file_uploader(
-    "Carica file Excel prodotti",
+excel = st.file_uploader(
+    "Carica Excel prodotti",
     type=["xlsx"]
 )
 
 
 
-template_file = st.file_uploader(
-    "Carica template HTML",
-    type=["html"]
-)
-
-
-
-
-if excel_file and template_file:
+if excel:
 
 
     df = pd.read_excel(
-        excel_file
-    )
-
-
-    template = template_file.read().decode(
-        "utf-8"
+        excel
     )
 
 
     st.subheader(
-        "Anteprima dati caricati"
+        "Anteprima prodotti"
     )
 
 
@@ -249,13 +347,11 @@ if excel_file and template_file:
 
 
     if st.button(
-        "🚀 GENERA EXCEL CON HTML"
+        "GENERARE HTML"
     ):
 
 
-
-        html_finali = []
-
+        risultati = []
 
 
         barra = st.progress(0)
@@ -266,59 +362,60 @@ if excel_file and template_file:
 
 
 
-        for indice, (_, row) in enumerate(df.iterrows()):
+        for indice,(_,row) in enumerate(
+            df.iterrows()
+        ):
 
 
             html = genera_html(
-                row,
-                template
+                row
             )
 
 
-            html_finali.append(
+            risultati.append(
                 html
             )
 
 
             barra.progress(
-                (indice + 1) / totale
+                (indice+1)/totale
             )
 
 
 
-        df["HTML_COMPLETO"] = html_finali
+        df["HTML_COMPLETO"] = risultati
 
 
 
-        output = BytesIO()
+        file_output = BytesIO()
 
 
 
         df.to_excel(
-            output,
+            file_output,
             index=False,
             engine="openpyxl"
         )
 
 
 
-        output.seek(0)
+        file_output.seek(0)
 
 
 
         st.success(
-            "File Excel generato correttamente!"
+            "File creato!"
         )
 
 
 
         st.download_button(
 
-            label="⬇ SCARICA EXCEL EBAY",
+            "⬇ Scarica Excel finale",
 
-            data=output,
+            data=file_output,
 
-            file_name="inserzioni_ebay_html.xlsx",
+            file_name="ebay_html_generato.xlsx",
 
             mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
 
